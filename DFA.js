@@ -81,7 +81,7 @@ class DFA_1D_Array
         while (carry != 0)
         {
             this.dfa_array[i] = this.dfa_array[i] + 1;
-            if (this.dfa_array [i] >= this.state_count)
+            if (this.dfa_array[i] >= this.state_count)
             {
                 carry = 1;
                 this.dfa_array[i] = 0;
@@ -110,10 +110,13 @@ function compare_2_strings (str1, str2)
 
     while (true)
     {
-        // this dfa array will store the solution we will return
+        var found = false;
+        // this dfa array will store the solutions we will add to solutions_arr
         var solution_dfa = new DFA_1D_Array(state_count);
         var size = Math.pow(state_count, (state_count * 2));
-        //size = size / state_count;
+        var solution_integers = [];
+        solution_integers.push(state_count);
+        var count = 0;
 
         for (var i = 0; i < size; i++)
         {
@@ -130,19 +133,39 @@ function compare_2_strings (str1, str2)
             // if string 1 and string 2 end on different states, our solution dfa is correct
             if (current_test_dfa.run_input(str1) != current_test_dfa.run_input(str2))
             {
-                return solution_dfa;
+                found = true;
+                solution_integers.push(count);
             }
 
-            // if string1 and string2 end on the same state number,
-            // increment the dfa and try again
+            count++;
             solution_dfa.increment_dfa();
-
         }
 
-        // if we have tried all DFAs of the current sizeand found no solutions, 
-        // increment state count and repeat the process
-        state_count++;
+        if (found)
+        {
+            return solution_integers;
+        }
+        else
+        {
+            state_count++;
+        }
     }
+}
+
+
+// convert int solutions to dfa array form
+function convert_int_to_dfa(state_count, dfa_number)
+{
+    var result = [];
+    var transition;
+
+    for(var i = 0; i < state_count * 2; i++)
+    {
+        transition = dfa_number % state_count;
+        dfa_number = Math.floor(dfa_number / state_count);
+        result.push(transition);
+    }
+    return result;
 }
 
 
@@ -179,19 +202,8 @@ const c = document.getElementById('canvas');
 const ctx = c.getContext('2d');
 
 //state positions
-const Xcoord = [c.width / 3, 
-                2 * c.width / 3,
-                c.width / 5,
-                4 * c.width / 5,
-                c.width / 3,
-                2 * c.width / 3    ]; 
-const Ycoord = [c.height / 4,
-                c.height / 4,
-                c.height / 2,
-                c.height / 2,
-                3 * c.height / 4,
-                3 * c.height / 4    ];
-
+var Xcoord = [];
+var Ycoord = [];
 
 
 
@@ -213,6 +225,28 @@ function get_input()
     return [firstString, secondString];
 }
 
+
+
+function place_states(total_states, Xshift, Yshift)
+{
+    const setup_radius = 300;
+    var setup_center_X = canvas.width/4 + Xshift;
+    var setup_center_Y = canvas.width/4 + Yshift;
+    //might need to change
+    
+    var state_angle = 0;
+    
+    console.log(total_states);
+
+    //this for loop is for creating states, adjust their location?
+    for(let i = 0; i < total_states; i++)
+    {    
+        state_angle = (2 * Math.PI * i) / total_states;
+        Xcoord[i] = setup_center_X + setup_radius * Math.cos(state_angle + Math.PI);
+        Ycoord[i] = setup_center_Y + setup_radius * Math.sin(state_angle + Math.PI);
+        
+    }
+}
 
 
 
@@ -275,6 +309,8 @@ function draw_arrows(arr)
 {
     ctx.font = "16px Arial";
 
+    var state_radius = 50;
+
     var curr_state  = 0;
     var end_state   = 0; 
     var curve_ref_x = 0;
@@ -293,9 +329,9 @@ function draw_arrows(arr)
             if (curr_state == end_state)
             {
                 start_x = Xcoord[curr_state] - 15;
-                start_y = Ycoord[curr_state] - 50;
+                start_y = Ycoord[curr_state] - state_radius;
                 end_x   = Xcoord[curr_state] + 15;
-                end_y   = Ycoord[curr_state] - 50;
+                end_y   = Ycoord[curr_state] - state_radius;
                 curve_ref_x = Xcoord[curr_state];
                 curve_ref_y = Ycoord[curr_state] - 150;
 
@@ -308,7 +344,7 @@ function draw_arrows(arr)
 
                 ctx.beginPath();
                 ctx.fillStyle = "black";
-                (i == 0) ? ctx.fillText(`${i}`, (curve_ref_x) , (curve_ref_y + 30)) : ctx.fillText(`${i}`, (curve_ref_x) , (curve_ref_y + 45));
+                (i == 0) ? ctx.fillText(`${i}`, (curve_ref_x) , (curve_ref_y + 30) ) : ctx.fillText(`${i}`, (curve_ref_x) , (curve_ref_y + 45) );
                 ctx.stroke();
                 ctx.closePath();
 
@@ -324,13 +360,13 @@ function draw_arrows(arr)
                 
                 var line_angle = findAngle(Xcoord[curr_state], Ycoord[curr_state], Xcoord[end_state], Ycoord[end_state]);
                 
-                curve_ref_x = Math.floor(midpoint[0] +  50 * Math.sin(line_angle));
-                curve_ref_y = Math.floor(midpoint[1] + -50 * Math.cos(line_angle));
+                curve_ref_x = Math.floor(midpoint[0] +  state_radius * Math.sin(line_angle));
+                curve_ref_y = Math.floor(midpoint[1] + -state_radius * Math.cos(line_angle));
                 
-                start_x = Math.floor(Xcoord[curr_state] + 50 * Math.cos(line_angle + 6));
-                end_x   = Math.floor(Xcoord[end_state]  + 50 * Math.cos(line_angle + 3.42));
-                start_y = Math.floor(Ycoord[curr_state] + 50 * Math.sin(line_angle + 6));
-                end_y   = Math.floor(Ycoord[end_state]  + 50 * Math.sin(line_angle + 3.42));
+                start_x = Math.floor(Xcoord[curr_state] + state_radius * Math.cos(line_angle + 6));
+                end_x   = Math.floor(Xcoord[end_state]  + state_radius * Math.cos(line_angle + 3.42));
+                start_y = Math.floor(Ycoord[curr_state] + state_radius * Math.sin(line_angle + 6));
+                end_y   = Math.floor(Ycoord[end_state]  + state_radius * Math.sin(line_angle + 3.42));
                 
                 ctx.beginPath();
                 ctx.fillStyle = "black";
@@ -341,7 +377,7 @@ function draw_arrows(arr)
 
                 ctx.beginPath();
                 ctx.fillStyle = "black";
-                (i == 0) ? ctx.fillText(`${i}`, (curve_ref_x) , (curve_ref_y)) : ctx.fillText(`${i}`, (midpoint[0] + curve_ref_x) / 2 , (midpoint[1] + curve_ref_y) / 2);
+                (i == 0) ? ctx.fillText(`${i}`, (curve_ref_x) , (curve_ref_y) ) : ctx.fillText(`${i}`, (midpoint[0] + curve_ref_x) / 2 , (midpoint[1] + curve_ref_y) / 2 );
                 ctx.stroke();
                 ctx.closePath();
 
@@ -361,8 +397,10 @@ function draw_arrows(arr)
 
 
 //transArr is a 2D array
-function display(transArr)
+function display(transArr, Xshift, Yshift)
 {
+    place_states(transArr.length, Xshift, Yshift);
+
     draw_states(transArr.length);
 
     draw_arrows(transArr);
@@ -377,14 +415,22 @@ function button_clicked()
 {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     var input_strings = get_input();
-    
+
     if (input_strings[0] != -1)
     {
-        var to_display = compare_2_strings(input_strings[0], input_strings[1]).dfa_array;
+        var solution_ints = compare_2_strings(input_strings[0], input_strings[1]);
+        console.log(solution_ints.length - 1);
+        var arr_size = solution_ints[0] * 2;
 
-        var to_display_2D = convert_2D(to_display);
+        for (var i = 0; i < arr_size; i++)
+        {
+            var dfa_to_display = convert_int_to_dfa(solution_ints[0], solution_ints[i+1]);
+            
+            var to_display_2D = convert_2D(dfa_to_display);
+            console.log(to_display_2D);
 
-        display(to_display_2D);
+            display(to_display_2D, ( (canvas.width/2) * (i % 2) ), ( (canvas.width/2) * Math.floor(i/2) ) );
+        }
     }
     
 }
